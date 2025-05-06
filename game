@@ -1,0 +1,157 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+struct Item {
+    string name;
+    string type;
+    int effect;
+};
+
+struct Character {
+    string name;
+    string role;
+    int hp;
+    int maxHp;
+    int attack;
+    int defense;
+    int level;
+    int xp;
+    vector<Item> inventory;
+};
+
+struct Enemy {
+    string name;
+    int hp;
+    int attack;
+    int defense;
+    int xpReward;
+};
+
+void showStats(Character& player) {
+    cout << "\n-- " << player.name << " the " << player.role << " --" << endl;
+    cout << "Level: " << player.level << " XP: " << player.xp << endl;
+    cout << "HP: " << player.hp << "/" << player.maxHp << endl;
+    cout << "ATK: " << player.attack << " DEF: " << player.defense << endl;
+}
+
+void showInventory(Character& player) {
+    cout << "\n-- Inventory --" << endl;
+    for (size_t i = 0; i < player.inventory.size(); ++i) {
+        cout << i + 1 << ". " << player.inventory[i].name << " (" << player.inventory[i].type << ")" << endl;
+    }
+}
+
+void useItem(Character& player) {
+    showInventory(player);
+    if (player.inventory.empty()) {
+        cout << "No items to use!\n";
+        return;
+    }
+    int choice;
+    cout << "Choose item number to use: ";
+    cin >> choice;
+    if (choice >= 1 && choice <= player.inventory.size()) {
+        Item item = player.inventory[choice - 1];
+        if (item.type == "potion") {
+            player.hp += item.effect;
+            if (player.hp > player.maxHp) player.hp = player.maxHp;
+            cout << player.name << " used " << item.name << ", healed for " << item.effect << " HP!\n";
+        }
+        player.inventory.erase(player.inventory.begin() + choice - 1);
+    } else {
+        cout << "Invalid item.\n";
+    }
+}
+
+void battle(Character& player, Enemy enemy) {
+    cout << "\nA wild " << enemy.name << " appears!\n";
+    while (enemy.hp > 0 && player.hp > 0) {
+        cout << "\nChoose your action:\n1. Attack\n2. Use Item\n> ";
+        int action;
+        cin >> action;
+
+        if (action == 1) {
+            int damage = player.attack - enemy.defense;
+            if (damage < 0) damage = 0;
+            enemy.hp -= damage;
+            cout << "You deal " << damage << " damage to " << enemy.name << "!\n";
+        } else if (action == 2) {
+            useItem(player);
+        } else {
+            cout << "Invalid action.\n";
+        }
+
+        if (enemy.hp > 0) {
+            int damage = enemy.attack - player.defense;
+            if (damage < 0) damage = 0;
+            player.hp -= damage;
+            cout << enemy.name << " hits you for " << damage << " damage!\n";
+        }
+    }
+
+    if (player.hp <= 0) {
+        cout << "\nYou were defeated by the " << enemy.name << "... Game over.\n";
+        exit(0);
+    } else {
+        cout << "\nYou defeated the " << enemy.name << "!\n";
+        player.xp += enemy.xpReward;
+        cout << "You gained " << enemy.xpReward << " XP!\n";
+        if (player.xp >= player.level * 10) {
+            player.level++;
+            player.maxHp += 10;
+            player.attack += 2;
+            player.defense += 1;
+            player.hp = player.maxHp;
+            player.xp = 0;
+            cout << "\nLevel up! You are now level " << player.level << "!\n";
+        }
+    }
+}
+
+int main() {
+    srand(static_cast<unsigned int>(time(0)));
+    Character player;
+
+    cout << "Welcome to the RPG!\nEnter your character name: ";
+    getline(cin, player.name);
+
+    cout << "Choose your class:\n1. Warrior\n2. Mage\n> ";
+    int classChoice;
+    cin >> classChoice;
+
+    if (classChoice == 1) {
+        player.role = "Warrior";
+        player.hp = player.maxHp = 100;
+        player.attack = 15;
+        player.defense = 5;
+    } else {
+        player.role = "Mage";
+        player.hp = player.maxHp = 70;
+        player.attack = 20;
+        player.defense = 3;
+    }
+    player.level = 1;
+    player.xp = 0;
+
+    player.inventory.push_back({"Small Potion", "potion", 20});
+    player.inventory.push_back({"Small Potion", "potion", 20});
+
+    showStats(player);
+
+    vector<Enemy> enemies = {
+        {"Goblin", 30, 8, 2, 5},
+        {"Skeleton", 50, 10, 4, 10},
+        {"Dragon", 100, 20, 8, 20}
+    };
+
+    for (Enemy& e : enemies) {
+        battle(player, e);
+    }
+
+    cout << "\nCongratulations, " << player.name << "! You defeated all enemies!\n";
+    return 0;
+}
